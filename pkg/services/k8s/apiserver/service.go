@@ -12,10 +12,8 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/grafana/dskit/services"
 	"github.com/grafana/grafana-apiserver/pkg/apis/kinds/install"
-	kindsv1 "github.com/grafana/grafana-apiserver/pkg/apis/kinds/v1"
 	grafanaapiserveroptions "github.com/grafana/grafana-apiserver/pkg/cmd/server/options"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -175,10 +173,6 @@ func (s *service) start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	serverConfig.ExtraConfig.RESTOptionsGetter = s.restOptionsGetter(unstructured.UnstructuredJSONScheme)
-	serverConfig.GenericConfig.RESTOptionsGetter = s.restOptionsGetter(Codecs.LegacyCodec(kindsv1.SchemeGroupVersion))
-	serverConfig.GenericConfig.Config.RESTOptionsGetter = s.restOptionsGetter(Codecs.LegacyCodec(kindsv1.SchemeGroupVersion))
 
 	serverConfig.GenericConfig.Authentication.Authenticator = authenticator
 
