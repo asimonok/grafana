@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 
-import { Field, PanelProps } from '@grafana/data';
-import { PanelDataErrorView } from '@grafana/runtime';
+import { Field, PanelProps, CartesianCoords2D } from '@grafana/data';
+import { PanelDataErrorView, getBackendSrv } from '@grafana/runtime';
 import { TooltipDisplayMode } from '@grafana/schema';
-import { KeyboardPlugin, TimeSeries, TooltipPlugin, usePanelContext, ZoomPlugin } from '@grafana/ui';
+import { KeyboardPlugin, TimeSeries, TooltipPlugin, usePanelContext, ZoomPlugin, MenuItemProps } from '@grafana/ui';
 import { config } from 'app/core/config';
 import { getFieldLinksForExplore } from 'app/features/explore/utils/links';
 
@@ -13,6 +13,8 @@ import { ContextMenuPlugin } from './plugins/ContextMenuPlugin';
 import { ExemplarsPlugin, getVisibleLabels } from './plugins/ExemplarsPlugin';
 import { OutsideRangePlugin } from './plugins/OutsideRangePlugin';
 import { ThresholdControlsPlugin } from './plugins/ThresholdControlsPlugin';
+import { TimescaleEditor } from './plugins/timescales/TimescaleEditor';
+import { TimescaleEditFormDTO } from './plugins/timescales/TimescaleEditorForm';
 import { TimeSeriesOptions } from './types';
 import { getTimezones, prepareGraphableFields, regenerateLinksSupplier } from './utils';
 
@@ -37,8 +39,48 @@ export const TimeSeriesPanel: React.FC<TimeSeriesPanelProps> = ({
     return getFieldLinksForExplore({ field, rowIndex, splitOpenFn: onSplitOpen, range: timeRange });
   };
 
+  const [isAddingTimescale, setAddingTimescale] = useState(false);
+  const [timescaleTriggerCoords, setTimescaleTriggerCoords] = useState<{
+    viewport: CartesianCoords2D;
+    plotCanvas: CartesianCoords2D;
+  } | null>(null);
+
   const frames = useMemo(() => prepareGraphableFields(data.series, config.theme2, timeRange), [data, timeRange]);
   const timezones = useMemo(() => getTimezones(options.timezone, timeZone), [options.timezone, timeZone]);
+
+  const onAddTimescale = useCallback(
+    async (formData: TimescaleEditFormDTO) => {
+      const { min, max, description } = formData;
+      const user = config.bootData.user;
+      const userId = user?.id;
+      const sanitizedDescription = description.replace(/\"|\'/g, '');
+      const rawSql = `insert into scale values(${min}, ${max}, '${sanitizedDescription}', ${userId}, ${id})`;
+      const target = data.request?.targets[0];
+      const datasourceId = target?.datasource?.uid;
+      const refId = target?.refId;
+
+      await getBackendSrv().post('/api/ds/query', {
+        debug: true,
+        from: 'now-1h',
+        publicDashboardAccessToken: 'string',
+        queries: [
+          {
+            datasource: {
+              uid: datasourceId,
+            },
+            format: 'table',
+            intervalMs: 86400000,
+            maxDataPoints: 1092,
+            rawSql,
+            refId,
+          },
+        ],
+        to: 'now',
+      });
+      setAddingTimescale(false);
+    },
+    [data, id]
+  );
 
   if (!frames) {
     return (
@@ -71,6 +113,18 @@ export const TimeSeriesPanel: React.FC<TimeSeriesPanelProps> = ({
         ) {
           alignedDataFrame = regenerateLinksSupplier(alignedDataFrame, frames, replaceVariables, timeZone);
         }
+
+        const defaultContextMenuItems: MenuItemProps[] = [
+          {
+            label: 'Add timescale',
+            ariaLabel: 'Add timescale',
+            icon: 'channel-add',
+            onClick: (e, p) => {
+              setTimescaleTriggerCoords(p.coords);
+              setAddingTimescale(true);
+            },
+          },
+        ];
 
         return (
           <>
@@ -115,6 +169,7 @@ export const TimeSeriesPanel: React.FC<TimeSeriesPanelProps> = ({
                                 startAnnotating({ coords: p.coords });
                               },
                             },
+                            ...defaultContextMenuItems,
                           ],
                         },
                       ]}
@@ -129,7 +184,22 @@ export const TimeSeriesPanel: React.FC<TimeSeriesPanelProps> = ({
                 config={config}
                 timeZone={timeZone}
                 replaceVariables={replaceVariables}
-                defaultItems={[]}
+                defaultItems={[
+                  {
+                    items: defaultContextMenuItems,
+                  },
+                ]}
+              />
+            )}
+            {isAddingTimescale && (
+              <TimescaleEditor
+                onSave={onAddTimescale}
+                onDismiss={() => setAddingTimescale(false)}
+                style={{
+                  position: 'absolute',
+                  left: timescaleTriggerCoords?.viewport?.x,
+                  top: timescaleTriggerCoords?.viewport?.y,
+                }}
               />
             )}
             {data.annotations && (
