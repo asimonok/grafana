@@ -132,11 +132,6 @@ const getStyles = (theme: GrafanaTheme2) => {
       overflow: hidden;
       z-index: ${theme.zIndex.navbarFixed};
     `,
-    editorContainer: css`
-      position: absolute;
-      top: calc(100% + 10px);
-      transform: translate3d(-50%, 0, 0);
-    `,
     editor: css`
       background: ${theme.colors.background.primary};
       box-shadow: ${theme.shadows.z3};
@@ -154,10 +149,6 @@ const getStyles = (theme: GrafanaTheme2) => {
     `,
     title: css`
       font-weight: ${theme.typography.fontWeightMedium};
-    `,
-    ts: css`
-      font-size: ${theme.typography.bodySmall.fontSize};
-      color: ${theme.colors.text.secondary};
     `,
   };
 };
