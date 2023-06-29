@@ -48,13 +48,22 @@ export const TimeSeriesPanel: React.FC<TimeSeriesPanelProps> = ({
   const frames = useMemo(() => prepareGraphableFields(data.series, config.theme2, timeRange), [data, timeRange]);
   const timezones = useMemo(() => getTimezones(options.timezone, timeZone), [options.timezone, timeZone]);
 
+  const mappings = fieldConfig.defaults.mappings;
+  let scale = '';
+  if (mappings && mappings.length) {
+    const options = mappings.map((mapping) => mapping.options).map((option: any) => option["scale"]?.text);
+    if (options && options.length) {
+      scale = options[0];
+    }
+  }
+  
   const onAddTimescale = useCallback(
     async (formData: TimescaleEditFormDTO) => {
       const { min, max, description } = formData;
       const user = config.bootData.user;
       const userId = user?.id;
       const sanitizedDescription = description.replace(/\"|\'/g, '');
-      const rawSql = `insert into scale values(${min}, ${max}, '${sanitizedDescription}', ${userId}, ${id})`;
+      const rawSql = `insert into scales values(now(), ${min}, ${max}, '${sanitizedDescription}', ${userId}, '${scale}')`;
       const target = data.request?.targets[0];
       const datasourceId = target?.datasource?.uid;
       const refId = target?.refId;
@@ -79,7 +88,7 @@ export const TimeSeriesPanel: React.FC<TimeSeriesPanelProps> = ({
       });
       setAddingTimescale(false);
     },
-    [data, id]
+    [data, scale]
   );
 
   if (!frames) {
@@ -114,17 +123,17 @@ export const TimeSeriesPanel: React.FC<TimeSeriesPanelProps> = ({
           alignedDataFrame = regenerateLinksSupplier(alignedDataFrame, frames, replaceVariables, timeZone);
         }
 
-        const defaultContextMenuItems: MenuItemProps[] = [
+        const defaultContextMenuItems: MenuItemProps[] = scale ? [
           {
-            label: 'Add timescale',
-            ariaLabel: 'Add timescale',
+            label: 'Update scale',
+            ariaLabel: 'Update scale',
             icon: 'channel-add',
             onClick: (e, p) => {
               setTimescaleTriggerCoords(p.coords);
               setAddingTimescale(true);
             },
           },
-        ];
+        ] : [];
 
         return (
           <>

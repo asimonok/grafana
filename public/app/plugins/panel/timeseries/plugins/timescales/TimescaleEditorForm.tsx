@@ -37,7 +37,7 @@ export const TimescaleEditorForm = React.forwardRef<HTMLDivElement, TimescaleEdi
           await onSave(data);
         } catch (error: any) {
           setIsLoading(false);
-          notifyApp.error('Add Timescale Error', error);
+          notifyApp.error('Update scale Error', error);
         }
       },
       [onSave, notifyApp]
@@ -51,7 +51,7 @@ export const TimescaleEditorForm = React.forwardRef<HTMLDivElement, TimescaleEdi
       >
         <div className={styles.header}>
           <HorizontalGroup justify={'space-between'} align={'center'}>
-            <div className={styles.title}>Add timescale</div>
+            <div className={styles.title}>Update scale</div>
           </HorizontalGroup>
         </div>
         <div className={styles.editorForm}>
