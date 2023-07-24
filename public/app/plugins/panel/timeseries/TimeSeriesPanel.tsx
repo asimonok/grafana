@@ -49,17 +49,21 @@ export const TimeSeriesPanel: React.FC<TimeSeriesPanelProps> = ({
   const timezones = useMemo(() => getTimezones(options.timezone, timeZone), [options.timezone, timeZone]);
 
   const mappings = fieldConfig.defaults.mappings;
-  let scale = '';
+  let scales: string[] = [];
+
   if (mappings && mappings.length) {
-    const options = mappings.map((mapping) => mapping.options).map((option: any) => option["scale"]?.text);
-    if (options && options.length) {
-      scale = options[0];
-    }
+    mappings.map((mapping: any) => mapping.options).map((mapping: any) => {
+      Object.keys(mapping).forEach((key: string) => {
+        if (key.toLowerCase().match(/scale/)) {
+          scales.push(mapping[key].text);
+        }
+      }) 
+    });
   }
   
   const onAddTimescale = useCallback(
     async (formData: TimescaleEditFormDTO) => {
-      const { min, max, description } = formData;
+      const { min, max, description, scale } = formData;
       const user = config.bootData.user;
       const userId = user?.id;
       const sanitizedDescription = description.replace(/\"|\'/g, '');
@@ -88,7 +92,7 @@ export const TimeSeriesPanel: React.FC<TimeSeriesPanelProps> = ({
       });
       setAddingTimescale(false);
     },
-    [data, scale]
+    [data]
   );
 
   if (!frames) {
@@ -123,7 +127,7 @@ export const TimeSeriesPanel: React.FC<TimeSeriesPanelProps> = ({
           alignedDataFrame = regenerateLinksSupplier(alignedDataFrame, frames, replaceVariables, timeZone);
         }
 
-        const defaultContextMenuItems: MenuItemProps[] = scale ? [
+        const defaultContextMenuItems: MenuItemProps[] = scales.length ? [
           {
             label: 'Update scale',
             ariaLabel: 'Update scale',
@@ -204,6 +208,7 @@ export const TimeSeriesPanel: React.FC<TimeSeriesPanelProps> = ({
               <TimescaleEditor
                 onSave={onAddTimescale}
                 onDismiss={() => setAddingTimescale(false)}
+                scales={scales}
                 style={{
                   position: 'absolute',
                   left: timescaleTriggerCoords?.viewport?.x,
