@@ -25,7 +25,7 @@ export const TimescaleEditorForm = React.forwardRef<HTMLDivElement, TimescaleEdi
     const styles = useStyles2(getStyles);
     const clickAwayRef = useRef(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [formData, setFormData] = useState<TimescaleEditFormDTO>({ description: '', min: 0, max: 0, scale: '' });
+    const [formData, setFormData] = useState<TimescaleEditFormDTO>({ description: '', min: 0, max: 0, scale: scales.length ? scales[0] : '' });
     const notifyApp = useAppNotification();
 
     useClickAway(clickAwayRef, () => {
